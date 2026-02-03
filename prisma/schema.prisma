@@ -1,0 +1,264 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model cotizacion {
+  id_cotizacion          Int              @id @default(autoincrement())
+  id_cliente             Int
+  fecha_creacion         DateTime         @default(now()) @db.Timestamp(6)
+  moneda                 String           @db.VarChar(10)
+  peso_millar_caja       Decimal          @db.Decimal(10, 2)
+  costo_materia_bruta    Decimal          @db.Decimal(10, 2)
+  porcentaje_desperdicio Decimal          @db.Decimal(5, 2)
+  costo_materia_liquida  Decimal          @db.Decimal(10, 2)
+  costo_embalaje         Decimal          @db.Decimal(10, 2)
+  precio_final           Decimal          @db.Decimal(10, 2)
+  margen_rentabilidad    Decimal          @db.Decimal(10, 2)
+  estado                 EstadoCotizacion @default(Pendiente)
+  cliente                cliente          @relation(fields: [id_cliente], references: [id_cliente], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model almacen {
+  id_almacen        Int                @id @default(autoincrement())
+  id_produccion     Int?
+  id_empleado       Int?
+  cantidad          Int?
+  fecha_entrada     DateTime?          @db.Timestamp(6)
+  empleado          empleado?          @relation(fields: [id_empleado], references: [id_empleado], onDelete: NoAction, onUpdate: NoAction)
+  produccion_pedido produccion_pedido? @relation(fields: [id_produccion], references: [id_produccion], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model aprobacion_productos {
+  id_aprobacion     Int             @id @default(autoincrement())
+  id_pedido_cliente Int?
+  id_empleado       Int?
+  estado            String?         @db.VarChar(50)
+  fecha_aprobacion  DateTime?       @db.Timestamp(6)
+  empleado          empleado?       @relation(fields: [id_empleado], references: [id_empleado], onDelete: NoAction, onUpdate: NoAction)
+  pedido_cliente    pedido_cliente? @relation(fields: [id_pedido_cliente], references: [id_pedido_cliente], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model cliente {
+  id_cliente     Int              @id @default(autoincrement())
+  nombre         String?          @db.VarChar(50)
+  telefono       String?          @db.VarChar(20)
+  correo         String?          @db.VarChar(100)
+  direccion      String?
+  cotizacion     cotizacion[]
+  pedido_cliente pedido_cliente[]
+  usuario        usuario[]
+}
+
+model control_calidad {
+  id_control        Int                @id @default(autoincrement())
+  id_produccion     Int?
+  id_empleado       Int?
+  estado            String?            @db.VarChar(50)
+  observaciones     String?
+  fecha             DateTime?          @db.Timestamp(6)
+  empleado          empleado?          @relation(fields: [id_empleado], references: [id_empleado], onDelete: NoAction, onUpdate: NoAction)
+  produccion_pedido produccion_pedido? @relation(fields: [id_produccion], references: [id_produccion], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model departamento {
+  id_departamento Int        @id @default(autoincrement())
+  nombre          String?    @db.VarChar(50)
+  descripcion     String?
+  empleado        empleado[]
+}
+
+model despacho_pedido {
+  id_despacho         Int               @id @default(autoincrement())
+  id_pedido_terminado Int?
+  id_empleado         Int?
+  fecha               DateTime?         @db.Timestamp(6)
+  estado              String?           @db.VarChar(50)
+  destino             String?           @db.VarChar(100)
+  empleado            empleado?         @relation(fields: [id_empleado], references: [id_empleado], onDelete: NoAction, onUpdate: NoAction)
+  pedido_terminado    pedido_terminado? @relation(fields: [id_pedido_terminado], references: [id_pedido_terminado], onDelete: NoAction, onUpdate: NoAction)
+  transporte          transporte[]
+}
+
+model detalle_pedido_cliente {
+  id_detalle_pedido Int             @id @default(autoincrement())
+  id_pedido_cliente Int?
+  producto          String?         @db.VarChar(100)
+  cantidad          Int?
+  color             String?         @db.VarChar(50)
+  tamano            String?         @db.VarChar(50)
+  dimensiones       String?         @db.VarChar(100)
+  pedido_cliente    pedido_cliente? @relation(fields: [id_pedido_cliente], references: [id_pedido_cliente], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model empaque {
+  id_empaque          Int               @id @default(autoincrement())
+  id_pedido_terminado Int?
+  id_empleado         Int?
+  tipo_empaque        String?           @db.VarChar(50)
+  cantidad            Int?
+  fecha               DateTime?         @db.Timestamp(6)
+  empleado            empleado?         @relation(fields: [id_empleado], references: [id_empleado], onDelete: NoAction, onUpdate: NoAction)
+  pedido_terminado    pedido_terminado? @relation(fields: [id_pedido_terminado], references: [id_pedido_terminado], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model empleado {
+  id_empleado          Int                    @id @default(autoincrement())
+  id_departamento      Int?
+  nombre               String?                @db.VarChar(20)
+  apellido             String?                @db.VarChar(20)
+  cedula               String?                @db.VarChar(20)
+  telefono             String?                @db.VarChar(20)
+  correo               String?                @db.VarChar(100)
+  puesto               String?                @db.VarChar(50)
+  fecha_contratacion   DateTime?              @db.Date
+  almacen              almacen[]
+  aprobacion_productos aprobacion_productos[]
+  control_calidad      control_calidad[]
+  despacho_pedido      despacho_pedido[]
+  empaque              empaque[]
+  departamento         departamento?          @relation(fields: [id_departamento], references: [id_departamento], onDelete: NoAction, onUpdate: NoAction)
+  factura              factura[]
+  materia_defectuosa   materia_defectuosa[]
+  orden_pedido         orden_pedido[]
+  pedido_terminado     pedido_terminado[]
+  produccion_pedido    produccion_pedido[]
+  salida_materia_prima salida_materia_prima[]
+}
+
+model factura {
+  id_factura        Int             @id @default(autoincrement())
+  id_pedido_cliente Int?
+  id_empleado       Int?
+  monto_total       Decimal?        @db.Decimal(10, 2)
+  fecha             DateTime?       @db.Timestamp(6)
+  metodo_pago       String?         @db.VarChar(50)
+  estado            String?         @db.VarChar(50)
+  empleado          empleado?       @relation(fields: [id_empleado], references: [id_empleado], onDelete: NoAction, onUpdate: NoAction)
+  pedido_cliente    pedido_cliente? @relation(fields: [id_pedido_cliente], references: [id_pedido_cliente], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model materia_defectuosa {
+  id_defecto        Int                @id @default(autoincrement())
+  id_produccion     Int?
+  id_empleado       Int?
+  descripcion       String?            @db.VarChar(100)
+  cantidad          Int?
+  fecha             DateTime?          @db.Timestamp(6)
+  empleado          empleado?          @relation(fields: [id_empleado], references: [id_empleado], onDelete: NoAction, onUpdate: NoAction)
+  produccion_pedido produccion_pedido? @relation(fields: [id_produccion], references: [id_produccion], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model materia_prima {
+  id_materia_prima     Int                    @id @default(autoincrement())
+  id_proveedor         Int?
+  nombre               String?                @db.VarChar(50)
+  descripcion          String?
+  unidad               String?                @db.VarChar(50)
+  stock_minimo         Int?
+  stock_actual         Int?
+  proveedor            proveedor?             @relation(fields: [id_proveedor], references: [id_proveedor], onDelete: NoAction, onUpdate: NoAction)
+  salida_materia_prima salida_materia_prima[]
+}
+
+model orden_pedido {
+  id_orden             Int                    @id @default(autoincrement())
+  id_pedido_cliente    Int?
+  id_empleado          Int?
+  fecha                DateTime?              @db.Timestamp(6)
+  estado               String?                @db.VarChar(50)
+  empleado             empleado?              @relation(fields: [id_empleado], references: [id_empleado], onDelete: NoAction, onUpdate: NoAction)
+  pedido_cliente       pedido_cliente?        @relation(fields: [id_pedido_cliente], references: [id_pedido_cliente], onDelete: NoAction, onUpdate: NoAction)
+  produccion_pedido    produccion_pedido[]
+  salida_materia_prima salida_materia_prima[]
+}
+
+model pedido_cliente {
+  id_pedido_cliente      Int                      @id @default(autoincrement())
+  id_cliente             Int?
+  fecha                  DateTime?                @db.Timestamp(6)
+  estado                 String?                  @db.VarChar(50)
+  aprobacion_productos   aprobacion_productos[]
+  detalle_pedido_cliente detalle_pedido_cliente[]
+  factura                factura[]
+  orden_pedido           orden_pedido[]
+  cliente                cliente?                 @relation(fields: [id_cliente], references: [id_cliente], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model pedido_terminado {
+  id_pedido_terminado Int                @id @default(autoincrement())
+  id_produccion       Int?
+  id_empleado         Int?
+  fecha               DateTime?          @db.Timestamp(6)
+  estado              String?            @db.VarChar(50)
+  despacho_pedido     despacho_pedido[]
+  empaque             empaque[]
+  empleado            empleado?          @relation(fields: [id_empleado], references: [id_empleado], onDelete: NoAction, onUpdate: NoAction)
+  produccion_pedido   produccion_pedido? @relation(fields: [id_produccion], references: [id_produccion], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model produccion_pedido {
+  id_produccion      Int                  @id @default(autoincrement())
+  id_orden           Int?
+  id_empleado        Int?
+  estado             String?              @db.VarChar(50)
+  fecha_inicio       DateTime?            @db.Timestamp(6)
+  fecha_fin          DateTime?            @db.Timestamp(6)
+  almacen            almacen[]
+  control_calidad    control_calidad[]
+  materia_defectuosa materia_defectuosa[]
+  pedido_terminado   pedido_terminado[]
+  empleado           empleado?            @relation(fields: [id_empleado], references: [id_empleado], onDelete: NoAction, onUpdate: NoAction)
+  orden_pedido       orden_pedido?        @relation(fields: [id_orden], references: [id_orden], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model proveedor {
+  id_proveedor  Int             @id @default(autoincrement())
+  nombre        String?         @db.VarChar(20)
+  telefono      String?         @db.VarChar(20)
+  correo        String?         @db.VarChar(100)
+  direccion     String?
+  materia_prima materia_prima[]
+}
+
+model salida_materia_prima {
+  id_salida        Int            @id @default(autoincrement())
+  id_orden         Int?
+  id_materia_prima Int?
+  id_empleado      Int?
+  cantidad         Int?
+  fecha            DateTime?      @db.Timestamp(6)
+  empleado         empleado?      @relation(fields: [id_empleado], references: [id_empleado], onDelete: NoAction, onUpdate: NoAction)
+  materia_prima    materia_prima? @relation(fields: [id_materia_prima], references: [id_materia_prima], onDelete: NoAction, onUpdate: NoAction)
+  orden_pedido     orden_pedido?  @relation(fields: [id_orden], references: [id_orden], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model transporte {
+  id_transporte   Int              @id @default(autoincrement())
+  id_despacho     Int?
+  empresa         String?          @db.VarChar(50)
+  chofer          String?          @db.VarChar(50)
+  placa           String?          @db.VarChar(20)
+  fecha_salida    DateTime?        @db.Timestamp(6)
+  despacho_pedido despacho_pedido? @relation(fields: [id_despacho], references: [id_despacho], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model usuario {
+  id_usuario     Int      @id @default(autoincrement())
+  id_cliente     Int?
+  nombre_usuario String?  @db.VarChar(50)
+  clave          String?  @db.VarChar(255)
+  rol            String?  @db.VarChar(50)
+  cliente        cliente? @relation(fields: [id_cliente], references: [id_cliente], onDelete: NoAction, onUpdate: NoAction)
+}
+
+enum EstadoCotizacion {
+  Pendiente
+  Aprobado
+  Cancelado
+}
