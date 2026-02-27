@@ -6,7 +6,7 @@
   "type": "commonjs",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node src/index.js",
+    "dev": "nodemon src/index.js",
     "test": "echo \"Tests no definidos todavía\""
   },
   "repository": {
@@ -23,12 +23,22 @@
   "dependencies": {
     "@prisma/client": "^6.4.1",
     "bcryptjs": "^3.0.3",
-    "dotenv": "^17.2.3",
+    "cors": "^2.8.6",
+    "decimal.js": "^10.6.0",
+    "dotenv": "^17.3.1",
     "express": "^4.19.2",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.0",
     "prisma": "^6.4.1"
+  },
+  "_moduleAliases": {
+    "@db": "./prisma.config.js",
+    "@modules": "./src/modules"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   }
 }
