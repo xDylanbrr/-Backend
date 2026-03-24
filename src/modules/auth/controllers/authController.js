@@ -1,50 +1,59 @@
 const service = require("../services/authService");
 const dto = require("../dtos/auth.dto");
 
-// Registro de Comprador
 exports.register = async (req, res) => {
-  // 1. Validamos los datos con el DTO
-  const validacion = dto.validarRegistro(req.body);
-  if (!validacion.valido) {
-    return res.status(400).json({ message: validacion.mensaje });
-  }
-
   try {
-    // 2. Llamamos al servicio (actualizado a registrarUsuario)
     const usuarioCreado = await service.registrarUsuario(req.body);
-    
-    // 3. Respondemos con éxito
     res.status(201).json({
-      message: "¡Registro exitoso! Ya puedes iniciar sesión.",
+      message: "¡Registro exitoso!",
       user: dto.buyerResponseDto(usuarioCreado)
     });
   } catch (error) {
-    // Si Prisma o el servicio lanzan un error (ej: cédula duplicada)
     res.status(400).json({ message: error.message });
   }
 };
 
-// Login de Comprador
 exports.login = async (req, res) => {
-  // 1. Validamos que vengan cédula y password
-  const validacion = dto.validarLogin(req.body);
-  if (!validacion.valido) {
-    return res.status(400).json({ message: validacion.mensaje });
-  }
-
   try {
-    // 2. Intentamos el login (actualizado a loginUsuario)
-    // El servicio ahora nos devuelve un objeto con { user, token }
     const resultado = await service.loginUsuario(req.body);
-    
-    // 3. Enviamos la respuesta con el Token JWT real
     res.json({
-      message: "Bienvenido al sistema GTG",
+      message: "Bienvenido a GTG",
       user: dto.buyerResponseDto(resultado.user),
-      token: resultado.token // <-- Ahora sí es el token real generado por el servicio
+      token: resultado.token
     });
   } catch (error) {
-    // 401 para credenciales inválidas
     res.status(401).json({ message: error.message });
+  }
+};
+
+exports.actualizarImagen = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!req.file) return res.status(400).json({ message: "No hay imagen" });
+
+    await service.actualizarImagenPerfil(userId, req.file.filename);
+    await service.crearNotificacion(userId, "Perfil", "Foto de perfil actualizada", "success");
+
+    const userFull = await service.obtenerPerfilCompleto(userId);
+    res.json({ user: dto.buyerResponseDto(userFull) });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ NUEVO: Controlador de Firma
+exports.guardarFirma = async (req, res) => {
+  try {
+    const { userId, firma } = req.body;
+    await service.actualizarFirmaDigital(userId, firma);
+    await service.crearNotificacion(userId, "Seguridad", "Firma digital actualizada", "info");
+
+    const userFull = await service.obtenerPerfilCompleto(userId);
+    res.json({ 
+      message: "Firma guardada", 
+      user: dto.buyerResponseDto(userFull) 
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

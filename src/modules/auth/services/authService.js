@@ -56,29 +56,62 @@ async function loginUsuario(data) {
 }
 
 async function actualizarImagenPerfil(idUsuario, nombreArchivo) {
+  const idNumerico = parseInt(idUsuario);
   const usuarioActual = await prisma.usuario.findUnique({
-    where: { id_usuario: parseInt(idUsuario) },
+    where: { id_usuario: idNumerico },
     select: { imagen_perfil: true }
   });
 
-  if (!usuarioActual) throw new Error("Usuario no encontrado");
-
-  if (usuarioActual.imagen_perfil) {
+  if (usuarioActual?.imagen_perfil) {
     const rutaAnterior = path.join(process.cwd(), "uploads", "perfiles", usuarioActual.imagen_perfil);
     if (fs.existsSync(rutaAnterior)) {
-      try { fs.unlinkSync(rutaAnterior); } catch (e) { console.error("Error borrando:", e); }
+      try { fs.unlinkSync(rutaAnterior); } catch (e) { console.error(e); }
     }
   }
 
   return await prisma.usuario.update({
-    where: { id_usuario: parseInt(idUsuario) },
+    where: { id_usuario: idNumerico },
     data: { imagen_perfil: nombreArchivo },
     include: { cliente: true }
+  });
+}
+
+// ✅ NUEVO: Guardar Firma Digital
+async function actualizarFirmaDigital(idUsuario, firmaBase64) {
+  return await prisma.usuario.update({
+    where: { id_usuario: parseInt(idUsuario) },
+    data: { firma: firmaBase64 },
+    include: { cliente: true }
+  });
+}
+
+// ✅ NUEVO: Crear Notificación
+async function crearNotificacion(idUsuario, titulo, mensaje, tipo = "info") {
+  return await prisma.notificacion.create({
+    data: {
+      id_usuario: parseInt(idUsuario),
+      titulo,
+      mensaje,
+      tipo
+    }
+  });
+}
+
+async function obtenerPerfilCompleto(idUsuario) {
+  return await prisma.usuario.findUnique({
+    where: { id_usuario: parseInt(idUsuario) },
+    include: { 
+      cliente: true,
+      notificaciones: { orderBy: { fecha_creacion: 'desc' }, take: 5 } 
+    }
   });
 }
 
 module.exports = {
   registrarUsuario,
   loginUsuario,
-  actualizarImagenPerfil
+  actualizarImagenPerfil,
+  actualizarFirmaDigital,
+  crearNotificacion,
+  obtenerPerfilCompleto
 };

@@ -14,7 +14,7 @@ function validarRegistro(data) {
     return { valido: false, mensaje: "La contraseña debe tener al menos 6 caracteres" };
   }
 
-  const cedulaLimpia = data.cedula.replace(/-/g, "");
+  const cedulaLimpia = String(data.cedula).replace(/-/g, "");
   if (cedulaLimpia.length < 11) {
     return { valido: false, mensaje: "La cédula debe ser válida (11 dígitos)" };
   }
@@ -30,24 +30,41 @@ function validarLogin(data) {
 }
 
 /**
- * DTO de salida corregido
+ * DTO de salida - Nivel "Modo Dios"
+ * Transforma los datos de la DB al formato que espera React
  */
 function buyerResponseDto(cuenta) {
-  const datosCliente = cuenta.cliente || cuenta;
+  // Manejamos si viene el objeto anidado de Prisma o datos planos
+  const datosCliente = cuenta.cliente || {};
   
-  const profileImageUrl = cuenta.imagen_perfil 
+  const profileImage = cuenta.imagen_perfil 
     ? `http://localhost:3000/uploads/perfiles/${cuenta.imagen_perfil}`
-    : `https://ui-avatars.com/api/?name=${encodeURIComponent(datosCliente.nombre)}&background=0D8ABC&color=fff`;
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(datosCliente.nombre || 'User')}&background=1B3A5C&color=fff`;
 
   return {
-    id: cuenta.id_usuario || cuenta.id, // ✅ Cambio clave para que el Frontend lo encuentre
-    nombre: datosCliente.nombre,
-    cedula: datosCliente.cedula,
-    email: datosCliente.correo || datosCliente.email,
+    // Identificadores (Mandamos ambos para evitar fallos en el Frontend)
+    id: cuenta.id_usuario || cuenta.id,
+    id_usuario: cuenta.id_usuario || cuenta.id,
+    
+    // Datos personales
+    nombre: datosCliente.nombre || cuenta.nombre,
+    cedula: datosCliente.cedula || cuenta.cedula,
+    email: datosCliente.correo || datosCliente.email || cuenta.correo,
+    correo: datosCliente.correo || datosCliente.email || cuenta.correo,
     empresa: datosCliente.empresa || null,
     telefono: datosCliente.telefono || null,
+    direccion: datosCliente.direccion || null,
+    
+    // Seguridad y Rol
     rol: cuenta.rol || "COMPRADOR",
-    profileImageUrl: profileImageUrl 
+    
+    // ✅ MODO DIOS: Firma e Imagen
+    imagen_perfil: cuenta.imagen_perfil,
+    profileImageUrl: profileImage,
+    firma: cuenta.firma || null, // Enviamos el Base64 de la firma
+    
+    // ✅ MODO DIOS: Notificaciones
+    notificaciones: cuenta.notificaciones || [] 
   };
 }
 
