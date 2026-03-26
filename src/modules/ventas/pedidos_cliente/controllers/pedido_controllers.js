@@ -32,7 +32,8 @@ const getPedidoById = async (req, res) => {
   }
 };
 
-const updatePedido = async (id, data) => {
+// ✅ Arreglado: Faltaba req y res en los parámetros
+const updatePedido = async (req, res) => {
   try {
     const dto = new UpdatePedidoClienteDTO(req.body);
     const pedido = await pedidoService.updatePedido(req.params.id, dto);
