@@ -21,15 +21,18 @@ const createPedido = async (data) => {
             
             // 1. Obtenemos el ID que manda el frontend
             let idValidado = parseInt(item.id_producto || item.id);
+            let nombreGuardado = null; // Por defecto es null (para productos de catálogo)
 
-            // 2. PROTECCIÓN: Si el número es un Timestamp gigante o inválido
-            if (isNaN(idValidado) || idValidado > 2147483647) {
-               // Nota: Debes tener un producto con ID 1 en tu BD
-               idValidado = 1; 
+            // 2. PROTECCIÓN DEFINITIVA: 
+            // Si el número es mayor a 10000 (es un timestamp inventado) o es NaN, es personalizado
+            if (isNaN(idValidado) || idValidado > 10000) {
+               idValidado = null; // Le quitamos el ID falso para que Neon no de error de Foreign Key
+               nombreGuardado = item.title || item.nombre || "Funda Personalizada"; // Guardamos el nombre en texto
             }
 
             return {
               id_producto: idValidado,
+              nombre_producto: nombreGuardado, // ✅ Pasamos el nuevo campo a la base de datos
               cantidad: parseInt(item.cantidad),
               precio_unitario: parseFloat(item.price || item.precio_unitario),
               subtotal: parseFloat((item.price || item.precio_unitario) * item.cantidad),
@@ -62,7 +65,7 @@ const getPedidos = async () => {
           include: { producto: true }
         }
       },
-      // ✅ Ahora que tenemos fecha, el orderBy funcionará perfecto
+      // Ordenamos por fecha para que los más nuevos salgan arriba
       orderBy: { fecha: 'desc' } 
     });
   } catch (error) {
@@ -94,8 +97,6 @@ const updatePedido = async (id, data) => {
 };
 
 const deletePedido = async (id) => {
-  // Nota: Si el pedido tiene detalles, Prisma podría dar error de FK.
-  // Si eso pasa, tendrías que hacer un deleteMany de los detalles primero.
   return await prisma.pedido_cliente.delete({
     where: { id_pedido_cliente: parseInt(id) }
   });

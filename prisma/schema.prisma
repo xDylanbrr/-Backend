@@ -63,18 +63,18 @@ model notificacion {
 
 model cotizacion {
   id_cotizacion          Int              @id @default(autoincrement())
-  id_cliente              Int
-  fecha_creacion          DateTime         @default(now()) @db.Timestamp(6)
-  moneda                  String           @db.VarChar(10)
-  peso_millar_caja        Decimal          @db.Decimal(10, 2)
-  costo_materia_bruta     Decimal          @db.Decimal(10, 2)
-  porcentaje_desperdicio  Decimal          @db.Decimal(5, 2)
-  costo_materia_liquida   Decimal          @db.Decimal(10, 2)
-  costo_embalaje          Decimal          @db.Decimal(10, 2)
-  precio_final            Decimal          @db.Decimal(10, 2)
-  margen_rentabilidad     Decimal          @db.Decimal(10, 2)
-  estado                  EstadoCotizacion @default(Pendiente)
-  cliente                 cliente          @relation(fields: [id_cliente], references: [id_cliente], onDelete: NoAction, onUpdate: NoAction)
+  id_cliente             Int
+  fecha_creacion         DateTime         @default(now()) @db.Timestamp(6)
+  moneda                 String           @db.VarChar(10)
+  peso_millar_caja       Decimal          @db.Decimal(10, 2)
+  costo_materia_bruta    Decimal          @db.Decimal(10, 2)
+  porcentaje_desperdicio Decimal          @db.Decimal(5, 2)
+  costo_materia_liquida  Decimal          @db.Decimal(10, 2)
+  costo_embalaje         Decimal          @db.Decimal(10, 2)
+  precio_final           Decimal          @db.Decimal(10, 2)
+  margen_rentabilidad    Decimal          @db.Decimal(10, 2)
+  estado                 EstadoCotizacion @default(Pendiente)
+  cliente                cliente          @relation(fields: [id_cliente], references: [id_cliente], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model pedido_cliente {
@@ -100,6 +100,7 @@ model detalle_pedido_cliente {
   tamano            String?         @db.VarChar(50)
   dimensiones       String?         @db.VarChar(100)
   id_producto       Int?
+  nombre_producto   String?         @db.VarChar(150) // ✅ AQUÍ ESTÁ EL CAMPO NUEVO PARA LOS PRODUCTOS PERSONALIZADOS
   precio_unitario   Decimal?        @db.Decimal(10, 2)
   subtotal          Decimal?        @db.Decimal(10, 2)
   pedido_cliente    pedido_cliente? @relation(fields: [id_pedido_cliente], references: [id_pedido_cliente])
@@ -154,15 +155,15 @@ model produccion_pedido {
 }
 
 model pedido_terminado {
-  id_pedido_terminado Int                @id @default(autoincrement())
+  id_pedido_terminado Int                 @id @default(autoincrement())
   id_produccion       Int?
   id_empleado         Int?
-  fecha               DateTime?          @db.Timestamp(6)
-  estado              String?            @db.VarChar(50)
+  fecha               DateTime?           @db.Timestamp(6)
+  estado              String?             @db.VarChar(50)
   despacho_pedido     despacho_pedido[]
   empaque             empaque[]
-  empleado            empleado?          @relation(fields: [id_empleado], references: [id_empleado], onDelete: NoAction, onUpdate: NoAction)
-  produccion_pedido   produccion_pedido? @relation(fields: [id_produccion], references: [id_produccion], onDelete: NoAction, onUpdate: NoAction)
+  empleado            empleado?           @relation(fields: [id_empleado], references: [id_empleado], onDelete: NoAction, onUpdate: NoAction)
+  produccion_pedido   produccion_pedido?  @relation(fields: [id_produccion], references: [id_produccion], onDelete: NoAction, onUpdate: NoAction)
 }
 
 // --- MODELOS DE RECURSOS HUMANOS Y CALIDAD ---
@@ -235,7 +236,7 @@ model materia_prima {
 
 model salida_materia_prima {
   id_salida        Int            @id @default(autoincrement())
-  id_orden          Int?
+  id_orden         Int?
   id_materia_prima Int?
   id_empleado      Int?
   cantidad         Int?
