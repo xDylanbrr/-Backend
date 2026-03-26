@@ -92,15 +92,12 @@ try {
 // =====================
 console.log("⏳ Intentando montar el módulo de producción...");
 try {
-    // 1. ORDEN DE PEDIDO
     const ordenPedidoRoutes = require("./modules/produccion/orden_pedido/routes/orden_pedido.routes"); 
     app.use("/api/produccion/orden-pedido", ordenPedidoRoutes);
     
-    // 2. PRODUCCIÓN PEDIDO (PROCESO)
     const produccionPedidoRoutes = require("./modules/produccion/produccion_pedido/routes/produccion_pedido.routes");
     app.use("/api/produccion/proceso", produccionPedidoRoutes);
 
-    // 3. PEDIDO TERMINADO (FIN DE FÁBRICA) - ✅ AHORA SÍ CONECTADO
     const pedidoTerminadoRoutes = require("./modules/produccion/pedido_terminado/routes/pedido_terminado.routes");
     app.use("/api/produccion/terminado", pedidoTerminadoRoutes);
     
@@ -121,7 +118,13 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: "Algo salió mal en el servidor", error: err.message });
 });
 
+// =====================
+// ARRANQUE DEL SERVIDOR (MODIFICADO PARA RENDER)
+// =====================
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Servidor GTG encendido correctamente`);
+  console.log(`🏠 Local: http://localhost:${PORT}`);
+  console.log(`🌐 Red: Escuchando en todas las interfaces (0.0.0.0:${PORT})`);
 });
