@@ -7,11 +7,19 @@ class CreatePedidoClienteDTO {
     }
     if (!total || total <= 0) throw new Error("El total del pedido no es válido");
 
+    // ✅ NUEVO: Validación rápida de cada producto en el carrito
+    items.forEach((item, index) => {
+      const nombre = item.title || item.nombre;
+      if (!nombre) {
+        throw new Error(`El producto en la posición ${index + 1} del carrito no tiene nombre válido.`);
+      }
+    });
+
     this.id_cliente = parseInt(id_cliente);
     this.total = parseFloat(total);
     this.fecha = fecha ? new Date(fecha) : new Date();
     this.estado = estado || "Pendiente";
-    this.items = items; // El array de productos del carrito
+    this.items = items; // El array de productos del carrito ya validado
   }
 }
 

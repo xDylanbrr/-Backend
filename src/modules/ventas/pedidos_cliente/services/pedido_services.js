@@ -4,6 +4,12 @@ const prisma = new PrismaClient();
 
 const createPedido = async (data) => {
   try {
+    // ✅ 1. Buscar los IDs de todos los productos que REALMENTE existen en la base de datos
+    const productosDB = await prisma.producto.findMany({
+      select: { id_producto: true }
+    });
+    const idsValidosBD = productosDB.map(p => p.id_producto);
+
     return await prisma.pedido_cliente.create({
       data: {
         id_cliente: parseInt(data.id_cliente),
@@ -18,7 +24,8 @@ const createPedido = async (data) => {
             // ✅ Ahora siempre guardamos el nombre del producto, venga de donde venga
             let nombreGuardado = item.title || item.nombre || "Producto GTG";
 
-            if (isNaN(idValidado) || idValidado > 10000) {
+            // ✅ 2. LA MAGIA: Si el ID no es un número, o si ese ID NO EXISTE en la BD, forzamos a null
+            if (isNaN(idValidado) || !idsValidosBD.includes(idValidado)) {
                idValidado = null; 
             }
 
