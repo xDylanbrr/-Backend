@@ -4,6 +4,8 @@ const prisma = new PrismaClient();
 
 const createPedido = async (data) => {
   try {
+    console.log("¡Ejecutando versión corregida de GTG!"); // ✅ EL TRUCO PARA FORZAR A GIT
+
     // ✅ 1. Buscar los IDs de todos los productos que REALMENTE existen en la base de datos
     const productosDB = await prisma.producto.findMany({
       select: { id_producto: true }
