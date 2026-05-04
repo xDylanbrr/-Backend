@@ -30,12 +30,38 @@ class PedidoTerminadoService {
 
   async crear(datos) {
     try {
-      // 1. Registramos el pedido terminado
+      // 🚀 LÓGICA ERP 2026: Si el producto está DAÑADO, se desvía a RECICLAJE
+      if (datos.estado === "Dañado") {
+        console.log("⚠️ Producto dañado detectado. Desviando a Reciclaje...");
+        
+        // 1. Crear el registro en la nueva tabla de reciclaje
+        await prisma.reciclaje.create({
+          data: {
+            id_produccion: datos.id_produccion,
+            motivo: "Rechazado en Control de Calidad - Dañado",
+            cantidad: 1, // Por defecto 1 lote/unidad
+            maquina_externa: "Máquina de Reciclaje Externa #1"
+          }
+        });
+
+        // 2. Cerramos el proceso de producción con un estado especial
+        await prisma.produccion_pedido.update({
+          where: { id_produccion: datos.id_produccion },
+          data: { 
+            estado: "Terminado (Rechazado - Dañado)",
+            fecha_fin: new Date()
+          }
+        });
+
+        return { mensaje: "Producto desviado a Reciclaje", desviado: true };
+      }
+
+      // FLUJO NORMAL: Si está aprobado, se crea el Pedido Terminado
       const nuevoPedidoTerminado = await prisma.pedido_terminado.create({
         data: datos
       });
 
-      // 2. Cerramos automáticamente el proceso en las máquinas
+      // Cerramos automáticamente el proceso en las máquinas como exitoso
       await prisma.produccion_pedido.update({
         where: { id_produccion: datos.id_produccion },
         data: { 

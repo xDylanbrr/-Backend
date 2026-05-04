@@ -21,35 +21,52 @@ async function main() {
   await prisma.detalle_pedido_cliente.deleteMany({});
   await prisma.pedido_cliente.deleteMany({});
   await prisma.cotizacion.deleteMany({});
+  
+  // ✅ CAMBIO 1: Borrar el empleado ANTES que el usuario por la nueva relación
+  await prisma.empleado.deleteMany({}); 
   await prisma.usuario.deleteMany({});
   await prisma.cliente.deleteMany({});
   await prisma.materia_prima.deleteMany({});
   await prisma.proveedor.deleteMany({});
   await prisma.producto.deleteMany({});
-  await prisma.empleado.deleteMany({});
   await prisma.departamento.deleteMany({});
 
   // 2. DATOS MAESTROS
   const dptoProd = await prisma.departamento.create({ data: { nombre: "Producción", descripcion: "Planta Principal" } });
   const dptoLog = await prisma.departamento.create({ data: { nombre: "Logística", descripcion: "Almacén y Despacho" } });
 
-  const emp1 = await prisma.empleado.create({
-    data: { nombre: "Dylan", apellido: "Admin", cedula: "402-111-1", correo: "dylan@gtg.do", puesto: "Gerente", id_departamento: dptoProd.id_departamento }
-  });
-
   const cliente = await prisma.cliente.create({
     data: { nombre: "Notions Group", empresa: "Global Tech", cedula: "001-222-2", correo: "ventas@notions.com", direccion: "Santiago, RD" }
   });
 
+  // ✅ CAMBIO 2: Crear el Usuario Administrador PRIMERO
   const hashedPass = await bcrypt.hash('admin123', 10);
-  await prisma.usuario.create({
-    data: { id_cliente: cliente.id_cliente, nombre_usuario: "admin_gtg", clave: hashedPass, rol: "ADMIN" }
+  const adminUser = await prisma.usuario.create({
+    data: { 
+      nombre_usuario: "admin_gtg", 
+      clave: hashedPass, 
+      rol: "ADMIN" 
+      // Nota: Quité el id_cliente porque un empleado administrador del sistema no suele ser un cliente externo.
+    }
+  });
+
+  // ✅ CAMBIO 3: Crear el Empleado y vincularlo al Usuario (id_usuario)
+  const emp1 = await prisma.empleado.create({
+    data: { 
+      nombre: "Dylan", 
+      apellido: "Admin", 
+      cedula: "402-111-1", 
+      correo: "dylan@gtg.do", 
+      puesto: "Gerente", 
+      id_departamento: dptoProd.id_departamento,
+      id_usuario: adminUser.id_usuario // <-- ¡EL ENLACE MÁGICO!
+    }
   });
 
   // CORRECCIÓN AQUÍ: Nombres de máximo 20 caracteres
   const prov = await prisma.proveedor.create({
     data: { 
-      nombre: "Suministros RD", // Antes: "Suministros Industriales" (24 chars) - CORREGIDO
+      nombre: "Suministros RD", 
       telefono: "809-000-0000", 
       correo: "ventas@suministros.do" 
     }
@@ -58,7 +75,7 @@ async function main() {
   const matPrima = await prisma.materia_prima.create({
     data: { 
       id_proveedor: prov.id_proveedor, 
-      nombre: "Plástico Ref.", // Antes: "Plástico Reforzado" - CORREGIDO
+      nombre: "Plástico Ref.", 
       unidad: "Rollos", 
       stock_actual: 1000, 
       stock_minimo: 100 
@@ -126,7 +143,7 @@ async function main() {
     data: { id_pedido_cliente: pedido.id_pedido_cliente, id_empleado: emp1.id_empleado, monto_total: 5000, metodo_pago: "Efectivo", numero_factura: "GT-0001", rnc_cliente: "131-12345-1" }
   });
 
-  console.log("¡Todas las tablas en Beekeeper han sido pobladas con éxito!");
+  console.log("🎉 ¡Todas las tablas en Neon/Beekeeper han sido pobladas con éxito!");
 }
 
 main()

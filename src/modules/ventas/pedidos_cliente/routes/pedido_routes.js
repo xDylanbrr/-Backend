@@ -6,7 +6,7 @@ const pedidoController = require("../controllers/pedido_controllers");
 router.post("/", pedidoController.createPedido);
 router.get("/", pedidoController.getPedidos);
 router.get("/:id", pedidoController.getPedidoById);
-router.put("/:id", pedidoController.updatePedido);
+router.patch("/:id/estado", pedidoController.updateEstado); // Usamos PATCH para actualizaciones parciales
 router.delete("/:id", pedidoController.deletePedido);
 
 module.exports = router;

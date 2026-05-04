@@ -1,70 +1,71 @@
-/**
- * Valida los datos de registro de un comprador
- */
+const { z } = require("zod");
+
+// ── Schemas Zod ─────────────────────────────────────────────────────────────
+
+const registroSchema = z.object({
+  nombre:   z.string().min(2,  "El nombre debe tener al menos 2 caracteres"),
+  cedula:   z.string().regex(/^\d{11}$/, "La cédula debe tener exactamente 11 dígitos numéricos"),
+  email:    z.string().email("Formato de email inválido"),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  empresa:  z.string().optional(),
+  telefono: z.string().optional(),
+  direccion: z.string().optional()
+});
+
+const loginSchema = z.object({
+  cedula:   z.string().min(1, "La cédula es requerida"),
+  password: z.string().min(1, "La contraseña es requerida")
+});
+
+// ── Validadores (compatibles con el código existente) ────────────────────────
+
 function validarRegistro(data) {
-  if (!data.nombre || !data.cedula || !data.email || !data.password) {
-    return { valido: false, mensaje: "Nombre, Cédula, Email y Contraseña son obligatorios" };
-  }
+  // Normalizar cédula: quitar guiones antes de validar
+  const dataNormalizada = { ...data, cedula: String(data.cedula || "").replace(/-/g, "") };
 
-  if (!data.email.includes("@")) {
-    return { valido: false, mensaje: "Formato de email inválido" };
+  const result = registroSchema.safeParse(dataNormalizada);
+  if (!result.success) {
+    const mensaje = result.error.errors[0]?.message || "Datos inválidos";
+    return { valido: false, mensaje };
   }
-
-  if (data.password.length < 6) {
-    return { valido: false, mensaje: "La contraseña debe tener al menos 6 caracteres" };
-  }
-
-  const cedulaLimpia = String(data.cedula).replace(/-/g, "");
-  if (cedulaLimpia.length < 11) {
-    return { valido: false, mensaje: "La cédula debe ser válida (11 dígitos)" };
-  }
-
   return { valido: true };
 }
 
 function validarLogin(data) {
-  if (!data.cedula || !data.password) {
-    return { valido: false, mensaje: "Cédula y contraseña son requeridas" };
+  const result = loginSchema.safeParse(data);
+  if (!result.success) {
+    const mensaje = result.error.errors[0]?.message || "Datos inválidos";
+    return { valido: false, mensaje };
   }
   return { valido: true };
 }
 
-/**
- * DTO de salida - Nivel "Modo Dios"
- * Transforma los datos de la DB al formato que espera React
- */
+// ── DTO de salida ────────────────────────────────────────────────────────────
+
 function buyerResponseDto(cuenta) {
-  // Manejamos si viene el objeto anidado de Prisma o datos planos
   const datosCliente = cuenta.cliente || {};
-  
-  const profileImage = cuenta.imagen_perfil 
-    ? `http://localhost:3000/uploads/perfiles/${cuenta.imagen_perfil}`
-    : `https://ui-avatars.com/api/?name=${encodeURIComponent(datosCliente.nombre || 'User')}&background=1B3A5C&color=fff`;
+
+  const profileImage = cuenta.imagen_perfil
+    ? `${process.env.BASE_URL || "http://localhost:3000"}/uploads/perfiles/${cuenta.imagen_perfil}`
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(datosCliente.nombre || "User")}&background=1B3A5C&color=fff`;
 
   return {
-    // Identificadores (Mandamos ambos para evitar fallos en el Frontend)
-    id: cuenta.id_usuario || cuenta.id,
+    id:         cuenta.id_usuario || cuenta.id,
     id_usuario: cuenta.id_usuario || cuenta.id,
-    
-    // Datos personales
-    nombre: datosCliente.nombre || cuenta.nombre,
-    cedula: datosCliente.cedula || cuenta.cedula,
-    email: datosCliente.correo || datosCliente.email || cuenta.correo,
-    correo: datosCliente.correo || datosCliente.email || cuenta.correo,
-    empresa: datosCliente.empresa || null,
-    telefono: datosCliente.telefono || null,
+
+    nombre:    datosCliente.nombre    || cuenta.nombre,
+    cedula:    datosCliente.cedula    || cuenta.cedula,
+    email:     datosCliente.correo    || datosCliente.email || cuenta.correo,
+    correo:    datosCliente.correo    || datosCliente.email || cuenta.correo,
+    empresa:   datosCliente.empresa   || null,
+    telefono:  datosCliente.telefono  || null,
     direccion: datosCliente.direccion || null,
-    
-    // Seguridad y Rol
-    rol: cuenta.rol || "COMPRADOR",
-    
-    // ✅ MODO DIOS: Firma e Imagen
-    imagen_perfil: cuenta.imagen_perfil,
+
+    rol:             cuenta.rol || "COMPRADOR",
+    imagen_perfil:   cuenta.imagen_perfil,
     profileImageUrl: profileImage,
-    firma: cuenta.firma || null, // Enviamos el Base64 de la firma
-    
-    // ✅ MODO DIOS: Notificaciones
-    notificaciones: cuenta.notificaciones || [] 
+    firma:           cuenta.firma || null,
+    notificaciones:  cuenta.notificaciones || []
   };
 }
 

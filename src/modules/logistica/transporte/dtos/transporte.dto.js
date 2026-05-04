@@ -6,7 +6,11 @@ const crearTransporteDTO = (data) => {
         empresa: data.empresa || "Sin Empresa",
         chofer: data.chofer || "Sin Asignar",
         placa: data.placa || "",
-        fecha_salida: data.fecha_salida ? new Date(data.fecha_salida) : new Date()
+        fecha_salida: data.fecha_salida ? new Date(data.fecha_salida) : new Date(),
+        // ✅ NUEVOS CAMPOS ERP 2026
+        numero_paquetes: data.numero_paquetes ? parseInt(data.numero_paquetes) : 0,
+        destino: data.destino || "",
+        pedidos_asociados: data.pedidos_asociados || ""
     };
 };
 

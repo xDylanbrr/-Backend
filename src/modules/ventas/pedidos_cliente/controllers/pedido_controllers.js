@@ -1,6 +1,6 @@
 // pedido_controllers.js
 const pedidoService = require("../services/pedido_services");
-const { CreatePedidoClienteDTO, UpdatePedidoClienteDTO } = require("../dtos/pedido_cliente.dto");
+const { CreatePedidoClienteDTO } = require("../dtos/pedido_cliente.dto");
 
 const createPedido = async (req, res) => {
   try {
@@ -32,11 +32,14 @@ const getPedidoById = async (req, res) => {
   }
 };
 
-// ✅ Arreglado: Faltaba req y res en los parámetros
-const updatePedido = async (req, res) => {
+const updateEstado = async (req, res) => {
   try {
-    const dto = new UpdatePedidoClienteDTO(req.body);
-    const pedido = await pedidoService.updatePedido(req.params.id, dto);
+    const { id } = req.params;
+    const { estado, id_usuario } = req.body;
+    
+    if (!estado) return res.status(400).json({ error: "El nuevo estado es obligatorio" });
+
+    const pedido = await pedidoService.updateEstadoPedido(id, estado, id_usuario);
     res.json(pedido);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -52,4 +55,10 @@ const deletePedido = async (req, res) => {
   }
 };
 
-module.exports = { createPedido, getPedidos, getPedidoById, updatePedido, deletePedido };
+module.exports = { 
+  createPedido, 
+  getPedidos, 
+  getPedidoById, 
+  updateEstado, 
+  deletePedido 
+};

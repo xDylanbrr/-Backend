@@ -1,81 +1,67 @@
-// pedido_services.js
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 const createPedido = async (data) => {
   try {
-    console.log("¡Ejecutando versión corregida de GTG!"); // ✅ EL TRUCO PARA FORZAR A GIT
+    console.log("🚀 createPedido iniciado");
 
-    // ✅ 1. Buscar los IDs de todos los productos que REALMENTE existen en la base de datos
-    const productosDB = await prisma.producto.findMany({
-      select: { id_producto: true }
-    });
-    const idsValidosBD = productosDB.map(p => p.id_producto);
-
-    return await prisma.pedido_cliente.create({
+    const pedido = await prisma.pedido_cliente.create({
       data: {
         id_cliente: parseInt(data.id_cliente),
         total: parseFloat(data.total),
-        estado: data.estado || "Pendiente",
-        fecha: new Date(), 
-        
+        estado: "Pendiente",
+        fecha: new Date(),
+
         detalle_pedido_cliente: {
           create: data.items.map((item) => {
-            
-            let idValidado = parseInt(item.id_producto || item.id);
-            // ✅ Ahora siempre guardamos el nombre del producto, venga de donde venga
-            let nombreGuardado = item.title || item.nombre || "Producto GTG";
-
-            // ✅ 2. LA MAGIA: Si el ID no es un número, o si ese ID NO EXISTE en la BD, forzamos a null
-            if (isNaN(idValidado) || !idsValidosBD.includes(idValidado)) {
-               idValidado = null; 
-            }
-
-            // ✅ PROTECCIÓN: Si el frontend no manda cantidad, asumimos 1 para evitar errores "NaN"
-            let cantidadValidada = parseInt(item.cantidad) || 1;
-            let precioValidado = parseFloat(item.price || item.precio_unitario) || 0;
+            const nombre = item.title || item.nombre || item.nombre_producto || `Producto GTG`;
+            const precio = parseFloat(item.precio_unitario ?? item.price ?? item.precio ?? 0);
+            const cantidad = parseInt(item.cantidad) || 1;
 
             return {
-              id_producto: idValidado,
-              nombre_producto: nombreGuardado, 
-              cantidad: cantidadValidada,
-              precio_unitario: precioValidado,
-              subtotal: precioValidado * cantidadValidada, // Ya no dará error
+              id_producto: item.id_producto ? parseInt(item.id_producto) : null,
+              nombre_producto: nombre,
+              cantidad,
+              precio_unitario: precio,
+              subtotal: precio * cantidad,
               color: item.color || null,
               tamano: item.tamano || null,
-              dimensiones: item.dimensiones || null
+              dimensiones: item.dimensiones || null,
             };
           }),
         },
+        // Guardamos el primer estado en el historial
+        historial_pedido: {
+          create: {
+            estado_nuevo: "Pendiente",
+            estado_anterior: null
+          }
+        }
       },
       include: {
         cliente: true,
-        detalle_pedido_cliente: {
-          include: { producto: true }
-        }
-      }
+        detalle_pedido_cliente: true,
+        historial_pedido: true
+      },
     });
+
+    console.log("🎉 PEDIDO CREADO REALMENTE EN DB - ID:", pedido.id_pedido_cliente);
+    return pedido;
   } catch (error) {
-    console.error("❌ ERROR CRÍTICO AL CREAR PEDIDO:", error.message);
+    console.error("❌ ERROR en createPedido:", error.message);
     throw error;
   }
 };
 
 const getPedidos = async () => {
-  try {
-    return await prisma.pedido_cliente.findMany({
-      include: {
-        cliente: true,
-        detalle_pedido_cliente: {
-          include: { producto: true }
-        }
-      },
-      orderBy: { fecha: 'desc' } 
-    });
-  } catch (error) {
-    console.error("❌ Error al obtener pedidos:", error.message);
-    throw error;
-  }
+  return await prisma.pedido_cliente.findMany({
+    include: {
+      cliente: true,
+      detalle_pedido_cliente: true,
+      historial_pedido: { orderBy: { fecha: 'desc' } }
+    },
+    orderBy: { fecha: 'desc' }
+  });
 };
 
 const getPedidoById = async (id) => {
@@ -83,20 +69,31 @@ const getPedidoById = async (id) => {
     where: { id_pedido_cliente: parseInt(id) },
     include: {
       cliente: true,
-      detalle_pedido_cliente: {
-        include: { producto: true }
-      }
+      detalle_pedido_cliente: true,
+      historial_pedido: { orderBy: { fecha: 'desc' } }
     }
   });
 };
 
-const updatePedido = async (id, data) => {
+const updateEstadoPedido = async (id, nuevoEstado, idUsuario = null) => {
+  const idNum = parseInt(id);
+  const pedidoActual = await prisma.pedido_cliente.findUnique({ where: { id_pedido_cliente: idNum } });
+
+  if (!pedidoActual) throw new Error("Pedido no encontrado");
+
   return await prisma.pedido_cliente.update({
-    where: { id_pedido_cliente: parseInt(id) },
+    where: { id_pedido_cliente: idNum },
     data: {
-      estado: data.estado,
-      total: data.total
-    }
+      estado: nuevoEstado,
+      historial_pedido: {
+        create: {
+          estado_anterior: pedidoActual.estado,
+          estado_nuevo: nuevoEstado,
+          id_usuario: idUsuario
+        }
+      }
+    },
+    include: { historial_pedido: true }
   });
 };
 
@@ -106,4 +103,10 @@ const deletePedido = async (id) => {
   });
 };
 
-module.exports = { createPedido, getPedidos, getPedidoById, updatePedido, deletePedido };
+module.exports = { 
+  createPedido, 
+  getPedidos, 
+  getPedidoById, 
+  updateEstadoPedido, 
+  deletePedido 
+};
