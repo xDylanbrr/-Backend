@@ -31,8 +31,8 @@ const corsOptions = {
     // 2. Limpiar el origin entrante para comparar
     const cleanOrigin = origin.replace(/\/$/, "");
 
-    // 3. Verificar si el origin está en la lista blanca
-    if (allowedOrigins.includes(cleanOrigin)) {
+    // 3. Verificar si el origin está en la lista blanca o es un preview de Vercel
+    if (allowedOrigins.includes(cleanOrigin) || cleanOrigin.endsWith(".vercel.app")) {
       callback(null, true);
     } else {
       callback(new Error("No permitido por políticas de seguridad (CORS)"));
