@@ -1,33 +1,33 @@
-const prisma = require("../../../../config/prisma");
+const prisma = require("../../../../../prisma.config");
 
 async function listar() {
   return prisma.materia_prima.findMany({
-    include: { almacen: true }
+    include: { proveedor: true }
   });
 }
 
 async function obtenerPorId(id) {
   return prisma.materia_prima.findUnique({
-    where: { id },
-    include: { almacen: true }
+    where: { id_materia_prima: Number(id) },
+    include: { proveedor: true }
   });
 }
 
 // ⚠️ SOLO USADO POR OTROS SERVICES
 async function aumentarStock(id, cantidad) {
   return prisma.materia_prima.update({
-    where: { id },
+    where: { id_materia_prima: Number(id) },
     data: {
-      stock: { increment: cantidad }
+      stock_actual: { increment: cantidad }
     }
   });
 }
 
 async function disminuirStock(id, cantidad) {
   return prisma.materia_prima.update({
-    where: { id },
+    where: { id_materia_prima: Number(id) },
     data: {
-      stock: { decrement: cantidad }
+      stock_actual: { decrement: cantidad }
     }
   });
 }

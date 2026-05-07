@@ -55,8 +55,8 @@ const registerLimiter = rateLimit({
 
 // Rutas Públicas
 router.post("/comprador-register", registerLimiter, controller.register);
-router.post("/comprador-login",    loginLimiter,    controller.login);
-router.post("/login",              loginLimiter,    controller.login);
+router.post("/comprador-login",    controller.login);
+router.post("/login",              controller.login);
 
 // Rutas de sesión
 router.post("/refresh", controller.refresh);

@@ -1,86 +1,97 @@
-const CreateAlmacenDto = require('../dtos/create_almacen.dto');
-const UpdateAlmacenDto = require('../dtos/update_almacen.dto');
-const ResponseAlmacenDto = require('../dtos/response-almacen.dto');
+const almacenService = require('../services/almacen.service');
 
 /**
  * Crear almacén
  */
-const crearAlmacen = async (req, res) => {
+const crear = async (req, res) => {
   try {
-    const createDto = new CreateAlmacenDto(req.body);
-
-    // AQUÍ luego irá tu lógica de BD (service o model)
-    // const almacen = await almacenService.create(createDto);
-
-    return res.status(201).json(
-      new ResponseAlmacenDto(true, 'Almacén creado correctamente', createDto)
-    );
+    const nuevoAlmacen = await almacenService.crear(req.body);
+    return res.status(201).json({
+      success: true,
+      message: 'Almacén creado correctamente',
+      data: nuevoAlmacen
+    });
   } catch (error) {
-    return res.status(400).json(
-      new ResponseAlmacenDto(false, error.message, null)
-    );
+    return res.status(400).json({
+      success: false,
+      error: error.message
+    });
   }
 };
 
 /**
  * Obtener todos los almacenes
  */
-const obtenerAlmacenes = async (req, res) => {
+const listar = async (req, res) => {
   try {
-    // const almacenes = await almacenService.findAll();
-
-    return res.status(200).json(
-      new ResponseAlmacenDto(true, 'Lista de almacenes', [])
-    );
+    const almacenes = await almacenService.listar();
+    return res.status(200).json({
+      success: true,
+      message: 'Lista de almacenes',
+      data: almacenes
+    });
   } catch (error) {
-    return res.status(500).json(
-      new ResponseAlmacenDto(false, error.message, null)
-    );
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Obtener almacén por ID
+ */
+const obtenerPorId = async (req, res) => {
+  try {
+    const almacen = await almacenService.obtenerPorId(req.params.id);
+    if (!almacen) return res.status(404).json({ success: false, error: 'Almacén no encontrado' });
+    return res.status(200).json({ success: true, data: almacen });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
   }
 };
 
 /**
  * Actualizar almacén
  */
-const actualizarAlmacen = async (req, res) => {
+const actualizar = async (req, res) => {
   try {
-    const { id } = req.params;
-    const updateDto = new UpdateAlmacenDto(req.body);
-
-    // const almacen = await almacenService.update(id, updateDto);
-
-    return res.status(200).json(
-      new ResponseAlmacenDto(true, 'Almacén actualizado', updateDto)
-    );
+    const almacenActualizado = await almacenService.actualizar(req.params.id, req.body);
+    return res.status(200).json({
+      success: true,
+      message: 'Almacén actualizado',
+      data: almacenActualizado
+    });
   } catch (error) {
-    return res.status(400).json(
-      new ResponseAlmacenDto(false, error.message, null)
-    );
+    return res.status(400).json({
+      success: false,
+      error: error.message
+    });
   }
 };
 
 /**
  * Eliminar almacén
  */
-const eliminarAlmacen = async (req, res) => {
+const eliminar = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    // await almacenService.delete(id);
-
-    return res.status(200).json(
-      new ResponseAlmacenDto(true, 'Almacén eliminado', null)
-    );
+    await almacenService.eliminar(req.params.id);
+    return res.status(200).json({
+      success: true,
+      message: 'Almacén eliminado'
+    });
   } catch (error) {
-    return res.status(500).json(
-      new ResponseAlmacenDto(false, error.message, null)
-    );
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 };
 
 module.exports = {
-  crearAlmacen,
-  obtenerAlmacenes,
-  actualizarAlmacen,
-  eliminarAlmacen,
+  crear,
+  listar,
+  obtenerPorId,
+  actualizar,
+  eliminar,
 };

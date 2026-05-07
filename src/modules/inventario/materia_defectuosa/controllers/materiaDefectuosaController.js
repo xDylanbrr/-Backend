@@ -14,12 +14,20 @@ exports.crear = async (req, res) => {
 };
 
 exports.listar = async (req, res) => {
-  const data = await service.listar();
-  res.json(data);
+  try {
+    const data = await service.listar();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 exports.obtenerPorId = async (req, res) => {
-  const data = await service.obtenerPorId(Number(req.params.id));
-  if (!data) return res.status(404).json({ error: "No encontrada" });
-  res.json(data);
+  try {
+    const data = await service.obtenerPorId(Number(req.params.id));
+    if (!data) return res.status(404).json({ error: "No encontrada" });
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };

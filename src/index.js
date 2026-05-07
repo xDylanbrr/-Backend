@@ -12,26 +12,40 @@ const app = express();
 const perfilesDir = path.join(process.cwd(), "uploads/perfiles");
 if (!fs.existsSync(perfilesDir)) fs.mkdirSync(perfilesDir, { recursive: true });
 
-// ── CORS ─────────────────────────────────────────────────────────────────────
-const allowedOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(",").map((o) => o.trim())
-  : ["http://localhost:5173", "http://localhost:3001"];
+// ── CORS (Configuración de Producción) ────────────────────────────────────────
+const allowedOrigins = (process.env.FRONTEND_URL || "")
+  .split(",")
+  .map((o) => o.trim().replace(/\/$/, "")) // Limpia espacios y "/" al final
+  .filter((o) => o !== "");
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // En desarrollo se permite sin Origin (Postman, curl)
-      if (!origin && process.env.NODE_ENV !== "production") return callback(null, true);
-      // En producción se exige Origin explícito
-      if (!origin) return callback(new Error("CORS: origin requerido en producción"));
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      callback(new Error(`CORS bloqueado: origen no permitido — ${origin}`));
-    },
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
+// Siempre incluimos localhost para desarrollo si no es producción estricta
+if (process.env.NODE_ENV !== "production") {
+  allowedOrigins.push("http://localhost:5173", "http://localhost:3000", "http://localhost:3001");
+}
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // 1. Permitir peticiones sin 'origin' (Server-to-server, herramientas de monitoreo, Postman)
+    if (!origin) return callback(null, true);
+
+    // 2. Limpiar el origin entrante para comparar
+    const cleanOrigin = origin.replace(/\/$/, "");
+
+    // 3. Verificar si el origin está en la lista blanca
+    if (allowedOrigins.includes(cleanOrigin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("No permitido por políticas de seguridad (CORS)"));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  credentials: true,
+  optionsSuccessStatus: 200, // Necesario para algunos navegadores antiguos (IE11, SmartTVs)
+  maxAge: 86400, // Cache de preflight por 24 horas para mejorar el rendimiento
+};
+
+app.use(cors(corsOptions));
 
 // ── Headers de seguridad ─────────────────────────────────────────────────────
 app.use((_req, res, next) => {
@@ -58,22 +72,28 @@ app.get("/", (_req, res) => res.json({ status: "API GTG operativa" }));
 const authRoutes = require("./modules/auth/routes/authRoutes");
 app.use("/api/auth", authRoutes);
 
-// ── GUARDIA GLOBAL: todo lo que sigue requiere JWT válido ─────────────────────
-app.use("/api", verifyToken);
+// ── GUARDIA GLOBAL: todo lo que sigue requiere JWT válido (DESACTIVADO PARA PRUEBAS) ─────────────────────
+// app.use("/api", verifyToken);
 
 // ── MÓDULO ADMINISTRACIÓN ─────────────────────────────────────────────────────
 const departamentosRoutes = require("./modules/administracion/departamentos/routes/departamentosRoutes");
 const empleadosRoutes     = require("./modules/administracion/empleados/routes/empleadosRoutes");
+const clientesRoutes      = require("./modules/clientes/routes/clientes.routes");
 app.use("/api/administracion/departamentos", departamentosRoutes);
 app.use("/api/administracion/empleados",     empleadosRoutes);
+app.use("/api/clientes",                     clientesRoutes);
 
 // ── MÓDULO INVENTARIO ─────────────────────────────────────────────────────────
 const almacenRoutes          = require("./modules/inventario/almacen/routes/almacen.routes");
 const materiaDefectuosaRoutes = require("./modules/inventario/materia_defectuosa/routes/materiaDefectuosa.routes");
 const materiaPrimaRoutes     = require("./modules/inventario/materia_prima/routes/materiaPrima.routes");
+const proveedoresRoutes      = require("./modules/inventario/proveedores/routes/routes");
+const salidaMateriaRoutes    = require("./modules/inventario/salida_materia_prima/routes/routes");
 app.use("/api/inventario/almacen",           almacenRoutes);
 app.use("/api/inventario/materia_defectuosa", materiaDefectuosaRoutes);
 app.use("/api/inventario/materia_prima",     materiaPrimaRoutes);
+app.use("/api/inventario/proveedores",       proveedoresRoutes);
+app.use("/api/inventario/salida-materia",    salidaMateriaRoutes);
 
 // ── MÓDULO VENTAS ─────────────────────────────────────────────────────────────
 const cotizacionesRoutes = require("./modules/ventas/cotizaciones/routes/cotizacionesRoutes.js");

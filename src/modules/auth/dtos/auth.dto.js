@@ -3,19 +3,36 @@ const { z } = require("zod");
 // ── Schemas Zod ─────────────────────────────────────────────────────────────
 
 const registroSchema = z.object({
-  nombre:   z.string().min(2,  "El nombre debe tener al menos 2 caracteres"),
-  cedula:   z.string().regex(/^\d{11}$/, "La cédula debe tener exactamente 11 dígitos numéricos"),
-  email:    z.string().email("Formato de email inválido"),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  nombre:   z.string({ required_error: "El nombre es requerido" }).min(2,  "El nombre debe tener al menos 2 caracteres"),
+  cedula:   z.string({ required_error: "La cédula es requerida" }).regex(/^\d{11}$/, "La cédula debe tener exactamente 11 dígitos numéricos"),
+  email:    z.string({ required_error: "El email es requerido" }).email("Formato de email inválido"),
+  password: z.string({ required_error: "La contraseña es requerida" }).min(6, "La contraseña debe tener al menos 6 caracteres"),
   empresa:  z.string().optional(),
   telefono: z.string().optional(),
   direccion: z.string().optional()
 });
 
 const loginSchema = z.object({
-  cedula:   z.string().min(1, "La cédula es requerida"),
-  password: z.string().min(1, "La contraseña es requerida")
+  cedula:   z.string({ required_error: "La cédula es requerida" }).min(1, "La cédula es requerida"),
+  password: z.string({ required_error: "La contraseña es requerida" }).min(1, "La contraseña es requerida")
 });
+
+// ── Helper ───────────────────────────────────────────────────────────────────
+
+function formatZodError(result) {
+  const issue = result.error?.issues?.[0] || result.error?.errors?.[0];
+  if (!issue) return "Datos inválidos";
+  
+  if (issue.message && (issue.message.includes("Invalid input") || issue.message === "Required" || issue.code === "invalid_type")) {
+    const campo = issue.path?.[0];
+    if (campo) {
+      return `El campo '${campo}' es requerido y debe ser válido`;
+    }
+    return "Faltan campos requeridos";
+  }
+  
+  return issue.message;
+}
 
 // ── Validadores (compatibles con el código existente) ────────────────────────
 
@@ -25,7 +42,7 @@ function validarRegistro(data) {
 
   const result = registroSchema.safeParse(dataNormalizada);
   if (!result.success) {
-    const mensaje = result.error.errors[0]?.message || "Datos inválidos";
+    const mensaje = formatZodError(result);
     return { valido: false, mensaje };
   }
   return { valido: true };
@@ -34,7 +51,7 @@ function validarRegistro(data) {
 function validarLogin(data) {
   const result = loginSchema.safeParse(data);
   if (!result.success) {
-    const mensaje = result.error.errors[0]?.message || "Datos inválidos";
+    const mensaje = formatZodError(result);
     return { valido: false, mensaje };
   }
   return { valido: true };
