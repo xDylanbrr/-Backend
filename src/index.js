@@ -29,24 +29,20 @@ const corsOptions = {
     if (!origin) return callback(null, true);
 
     // 2. Limpiar el origin entrante para comparar
-    const cleanOrigin = origin.replace(/\/$/, "").toLowerCase();
+    const cleanOrigin = origin.replace(/\/$/, "");
 
-    // 3. Verificar si el origin está en la lista blanca o es un dominio de Vercel
-    const isAllowed = allowedOrigins.some(o => o.toLowerCase() === cleanOrigin) || 
-                     cleanOrigin.endsWith(".vercel.app");
-
-    if (isAllowed) {
+    // 3. Verificar si el origin está en la lista blanca o es un preview de Vercel
+    if (allowedOrigins.includes(cleanOrigin) || cleanOrigin.endsWith(".vercel.app")) {
       callback(null, true);
     } else {
-      console.warn(`[CORS REJECTED] Origin: ${origin}`);
-      callback(new Error("CORS_NOT_ALLOWED"));
+      callback(new Error("No permitido por políticas de seguridad (CORS)"));
     }
   },
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   credentials: true,
-  optionsSuccessStatus: 200,
-  maxAge: 86400,
+  optionsSuccessStatus: 200, // Necesario para algunos navegadores antiguos (IE11, SmartTVs)
+  maxAge: 86400, // Cache de preflight por 24 horas para mejorar el rendimiento
 };
 
 app.use(cors(corsOptions));
@@ -145,11 +141,8 @@ app.use((err, _req, res, _next) => {
   console.error(`[${new Date().toISOString()}] ${_req.method} ${_req.path} —`, err.message);
 
   // Errores de CORS
-  if (err.message === "CORS_NOT_ALLOWED") {
-    return res.status(403).json({ 
-      error: "No permitido por políticas de seguridad (CORS)",
-      details: "El dominio de origen no está en la lista blanca del servidor."
-    });
+  if (err.message?.startsWith("CORS")) {
+    return res.status(403).json({ error: err.message });
   }
 
   // En producción no exponemos el stack trace al cliente
@@ -161,21 +154,6 @@ app.use((err, _req, res, _next) => {
 
 // ── ARRANQUE ──────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-
-async function startServer() {
-  try {
-    // Verificar conexión a DB antes de escuchar
-    const prisma = require("./config/prisma");
-    await prisma.$connect();
-    console.log("✅ Conexión a la base de datos verificada correctamente.");
-
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`🚀 Servidor GTG listo en puerto ${PORT} (${process.env.NODE_ENV || "development"})`);
-    });
-  } catch (error) {
-    console.error("❌ ERROR FATAL AL INICIAR EL SERVIDOR:", error.message);
-    process.exit(1);
-  }
-}
-
-startServer();
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Servidor GTG en puerto ${PORT} (${process.env.NODE_ENV || "development"})`);
+});
